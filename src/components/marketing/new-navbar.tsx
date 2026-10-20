@@ -1,20 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, ScrollText, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 import { fetchClientSessionUser } from "@/lib/auth/client-session";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import type { UserRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -47,36 +41,14 @@ function canAccessAdmin(role: UserRole) {
   );
 }
 
-function NavLink({
-  href,
-  label,
-  className,
-}: {
-  href: string;
-  label: string;
-  className: string;
-}) {
-  if (href.includes("#")) {
-    return (
-      <a href={href} className={className}>
-        {label}
-      </a>
-    );
-  }
-  return (
-    <Link href={href} className={className}>
-      {label}
-    </Link>
-  );
-}
-
 export function NewNavbar({ currentUser }: NewNavbarProps) {
   const pathname = usePathname();
   const [clientUser, setClientUser] = useState<PortalCurrentUser | null>(null);
-  const [hasScrolled, setHasScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
 
   const resolvedUser = currentUser === undefined ? clientUser : currentUser;
-  const isCompact = pathname !== "/" || hasScrolled;
+
   const showAdminEntry = resolvedUser ? canAccessAdmin(resolvedUser.role) : false;
 
   useEffect(() => {
@@ -104,17 +76,12 @@ export function NewNavbar({ currentUser }: NewNavbarProps) {
   }, [currentUser]);
 
   useEffect(() => {
-    if (pathname !== "/") return;
-
-    const handleScroll = () => {
-      setHasScrolled(window.scrollY > 28);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [pathname]);
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); }
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
 
   async function handleSignOut() {
     // Auth.js may return the private API origin through the BFF.
@@ -123,178 +90,42 @@ export function NewNavbar({ currentUser }: NewNavbarProps) {
     window.location.assign("/");
   }
 
-  return (
-    <header
-      className={cn(
-        "fixed left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-[1400px] -translate-x-1/2 transition-all duration-300 md:w-[calc(100%-3rem)]",
-        isCompact ? "top-3" : "top-5",
-      )}
-    >
-      <nav
-        className={cn(
-          "flex items-center gap-2 rounded-full backdrop-blur-md transition-all duration-300",
-          isCompact
-            ? "border border-border/60 bg-background/85 shadow-lg"
-            : "border border-white/30 bg-[linear-gradient(110deg,rgba(255,255,255,0.88),rgba(176,198,255,0.48))] shadow-[0_18px_45px_-24px_rgba(42,84,224,0.75)]",
-          isCompact ? "px-3 py-1.5" : "px-4 py-2.5",
-        )}
-      >
-        <Link
-          href="/"
-          className={cn(
-            "flex items-center gap-2 transition-all",
-            isCompact ? "pr-1" : "pr-2",
-          )}
-        >
-          <div
-            className={cn(
-              "flex items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-all",
-              isCompact ? "size-7" : "size-8",
-            )}
-          >
-            <Trophy className={cn("transition-all", isCompact ? "size-3.5" : "size-4")} />
-          </div>
-          <span className={cn("hidden font-semibold sm:inline", isCompact ? "text-xs" : "text-sm")}>
-            学院竞赛中心
-          </span>
-        </Link>
-
-        <div className={cn("hidden items-center md:flex", isCompact ? "gap-0.5" : "gap-1")}>
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              className={cn(
-                "rounded-full font-medium transition-colors",
-                isCompact
-                  ? "text-muted-foreground hover:bg-accent hover:text-foreground"
-                  : "text-slate-700 hover:bg-white/55 hover:text-slate-900",
-                isCompact ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
-              )}
-            />
-          ))}
-        </div>
-
-        <div className="ml-auto flex items-center gap-2">
-          <NotificationBell />
-          {resolvedUser ? (
-            <>
-              <div
-                className={cn(
-                  "hidden items-center gap-2 rounded-full lg:flex",
-                  isCompact
-                    ? "border border-border/50 bg-card/80"
-                    : "border border-white/40 bg-white/55",
-                  isCompact ? "px-2.5 py-1" : "px-3 py-1.5",
-                )}
-              >
-                <div className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <ScrollText className="size-3" />
-                </div>
-                <span className={cn("font-medium", isCompact ? "text-[11px]" : "text-xs")}>
-                  {resolvedUser.name}
-                </span>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className={cn("rounded-full", isCompact ? "text-[11px]" : "text-xs")}
-              >
-                <Link href="/me">个人中心</Link>
-              </Button>
-
-              {showAdminEntry && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className={cn("rounded-full", isCompact ? "text-[11px]" : "text-xs")}
-                >
-                  <Link href="/admin">管理台</Link>
-                </Button>
-              )}
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn("rounded-full text-muted-foreground", isCompact ? "text-[11px]" : "text-xs")}
-                onClick={() => void handleSignOut()}
-              >
-                <LogOut className="size-3" />
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className={cn("rounded-full", isCompact ? "text-[11px]" : "text-xs")}
-              >
-                <Link href="/sign-in">登录</Link>
-              </Button>
-              <Button
-                size="sm"
-                asChild
-                className={cn("rounded-full", isCompact ? "text-[11px]" : "text-xs")}
-              >
-                <Link href="/competitions">查看比赛</Link>
-              </Button>
-            </>
-          )}
-        </div>
-
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 rounded-full md:hidden">
-              <Menu className="size-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[300px]">
-            <SheetTitle>学院竞赛中心</SheetTitle>
-            <div className="mt-8 flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.href}
-                  href={link.href}
-                  label={link.label}
-                  className="text-base font-medium text-foreground"
-                />
-              ))}
-              <Link
-                href={resolvedUser ? "/me" : "/sign-in"}
-                className="text-base font-medium text-foreground"
-              >
-                {resolvedUser ? "个人中心" : "登录"}
-              </Link>
-              {showAdminEntry && (
-                <Link href="/admin" className="text-base font-medium text-foreground">
-                  管理台
-                </Link>
-              )}
-              <div className="mt-4 flex flex-col gap-3">
-                {resolvedUser ? (
-                  <Button variant="outline" className="w-full" onClick={() => void handleSignOut()}>
-                    退出登录
-                  </Button>
-                ) : (
-                  <>
-                    <Button variant="outline" asChild className="w-full">
-                      <Link href="/sign-in">登录</Link>
-                    </Button>
-                    <Button asChild className="w-full">
-                      <Link href="/competitions">查看全部比赛</Link>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </nav>
-    </header>
-  );
+  function accountLinks() {
+    return resolvedUser ? <>
+      <span className="max-w-36 truncate text-sm text-slate-600">{resolvedUser.name}</span>
+      <Link href="/me" onClick={() => setMenuOpen(false)} className="py-3 text-sm">个人中心</Link>
+      {showAdminEntry && <Link href="/admin" onClick={() => setMenuOpen(false)} className="py-3 text-sm">管理台</Link>}
+      <button type="button" className="min-h-11 text-sm text-slate-600" onClick={() => void handleSignOut()}>退出登录</button>
+    </> : <>
+      <Link href="/sign-in" onClick={() => setMenuOpen(false)} className="py-3 text-sm">登录</Link>
+      <Button asChild size="sm"><Link href="/competitions" onClick={() => setMenuOpen(false)}>查看比赛</Link></Button>
+    </>;
+  }
+  function navigationLinks(mobile = false) {
+    return navLinks.map((link) => {
+      const active = pathname === link.href || pathname.startsWith(link.href + "/");
+      return <Link key={link.href} href={link.href} aria-current={active ? "page" : undefined}
+        onClick={() => setMenuOpen(false)}
+        className={cn("relative flex min-h-11 items-center whitespace-nowrap text-sm focus-visible:outline-2 focus-visible:outline-blue-600",
+          mobile ? "px-3 py-3" : "py-4",
+          active ? "font-semibold text-blue-600 after:absolute after:bottom-1 after:left-1/2 after:h-0.5 after:w-5 after:-translate-x-1/2 after:bg-blue-600" : "text-slate-600 hover:text-blue-600")}>{link.label}</Link>;
+    });
+  }
+  return <header className="bg-white text-slate-900">
+    <div className="mx-auto flex min-h-[68px] max-w-6xl flex-wrap items-center gap-x-6 px-4 py-2 md:px-6">
+      <Link href="/" className="flex items-center gap-2 whitespace-nowrap text-sm font-semibold">
+        <span className="grid size-8 place-items-center rounded-full bg-blue-600 text-white"><Trophy className="size-4" aria-hidden="true" /></span>学院竞赛中心
+      </Link>
+      <nav aria-label="网站导航" className="hidden items-center gap-6 min-[960px]:flex">{navigationLinks()}</nav>
+      <div className="ml-auto flex items-center gap-3"><NotificationBell />
+        <div className="hidden items-center gap-4 min-[960px]:flex">{accountLinks()}</div>
+        <button ref={menuButton} type="button" aria-expanded={menuOpen} aria-controls="portal-mobile-menu"
+          className="min-h-11 px-2 text-sm min-[960px]:hidden" onClick={() => setMenuOpen(!menuOpen)}>菜单</button>
+      </div>
+      <div id="portal-mobile-menu" hidden={!menuOpen} className="w-full pb-3 min-[960px]:hidden">
+        <nav aria-label="手机网站导航" className="flex flex-col">{navigationLinks(true)}</nav>
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 px-3">{accountLinks()}</div>
+      </div>
+    </div>
+  </header>;
 }

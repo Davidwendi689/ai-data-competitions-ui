@@ -15,7 +15,6 @@ export function PortalNavbar({ currentUser }: PortalNavbarProps) {
   return (
     <>
       <NewNavbar currentUser={currentUser} />
-      <div aria-hidden="true" className="h-24" />
     </>
   );
 }

@@ -33,7 +33,7 @@ export default async function AwardDetailPage({
     : null;
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8f6ef_0%,#fcfbf8_45%,#f3efe5_100%)]">
+    <div className="min-h-screen bg-white">
       <NewNavbar currentUser={currentUser} />
       <main className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
         <div className="space-y-6">

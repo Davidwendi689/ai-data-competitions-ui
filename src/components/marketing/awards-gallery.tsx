@@ -5,34 +5,46 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { LazyFillImage } from "@/components/shared/lazy-fill-image";
-import type { AwardGalleryRow } from "@/lib/contracts/profiles";
-import { groupGalleryAwards, groupGalleryLevels } from "@/lib/award-gallery";
+import type { GalleryAward } from "@/lib/award-gallery";
+import { galleryHref, groupGalleryAwards, groupGalleryLevels, resolveGallerySelection } from "@/lib/award-gallery";
 
 function Count({ value, unit }: { value: number; unit: string }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [display, setDisplay] = useState(value);
+  const reducedMotion = useReducedMotion();
+  const completedValue = useRef<number | null>(null);
+  const [counter, setCounter] = useState({ target: value, display: value });
+  const display = reducedMotion || counter.target !== value ? value : counter.display;
   useEffect(() => {
     const element = ref.current;
-    if (!element || !window.IntersectionObserver || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!element) return;
+    if (!window.IntersectionObserver || reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const finish = requestAnimationFrame(() => {
+        completedValue.current = value;
+        setCounter({ target: value, display: value });
+      });
+      return () => cancelAnimationFrame(finish);
+    }
+    if (completedValue.current === value) return;
     let frame = 0;
     let started = false;
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting || entry.intersectionRatio < 0.5 || started) return;
       started = true;
       observer.disconnect();
-      setDisplay(0);
+      setCounter({ target: value, display: 0 });
       const start = performance.now();
       const tick = (now: number) => {
         const progress = Math.min((now - start) / 3000, 1);
-        setDisplay(Math.floor(value * (1 - (1 - progress) ** 2)));
+        setCounter({ target: value, display: Math.floor(value * (1 - (1 - progress) ** 2)) });
         if (progress < 1) frame = requestAnimationFrame(tick);
+        else completedValue.current = value;
       };
       frame = requestAnimationFrame(tick);
     }, { threshold: 0.5 });
     observer.observe(element);
     return () => { observer.disconnect(); cancelAnimationFrame(frame); };
-  }, [value]);
-  return <span ref={ref} className="inline-flex items-baseline gap-1 whitespace-nowrap" aria-label={`${value}${unit}`}><strong aria-hidden="true" className="text-4xl font-semibold tabular-nums text-blue-700">{display.toLocaleString("zh-CN")}</strong><span aria-hidden="true" className="text-sm text-slate-500">{unit}</span></span>;
+  }, [value, reducedMotion]);
+  return <span ref={ref} role="img" className="inline-flex items-baseline gap-1 whitespace-nowrap" aria-label={`${value}${unit}`}><strong aria-hidden="true" className="text-4xl font-semibold tabular-nums text-blue-700">{display.toLocaleString("zh-CN")}</strong><span aria-hidden="true" className="text-sm text-slate-500">{unit}</span></span>;
 }
 
 function CompetitionCard({ children }: { children: ReactNode }) {
@@ -47,7 +59,7 @@ function CompetitionCard({ children }: { children: ReactNode }) {
     }} onPointerLeave={() => setOffset({ x: 0, y: 0 })} onFocusCapture={() => setOffset({ x: 0, y: 0 })}>{children}</motion.article>;
 }
 
-export function AwardsGallery({ awards }: { awards: AwardGalleryRow[] }) {
+export function AwardsGallery({ awards }: { awards: GalleryAward[] }) {
   const years = useMemo(() => groupGalleryAwards(awards), [awards]);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,9 +68,7 @@ export function AwardsGallery({ awards }: { awards: AwardGalleryRow[] }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const guide = useRef<HTMLElement>(null);
   const shouldFocus = useRef(false);
-  const year = years.find((item) => String(item.year) === selectedYear);
-  const competition = year?.competitions.find((item) => item.id === selectedCompetition);
-  const stage = competition ? 2 : year ? 1 : 0;
+  const { year, competition, stage } = resolveGallerySelection(years, selectedYear, selectedCompetition);
   const latest = years[0];
   useEffect(() => {
     if (!shouldFocus.current) return;
@@ -68,10 +78,7 @@ export function AwardsGallery({ awards }: { awards: AwardGalleryRow[] }) {
   }, [selectedYear, selectedCompetition]);
   function navigate(next: { year?: number; competition?: string }) {
     shouldFocus.current = true;
-    const query = new URLSearchParams();
-    if (next.year !== undefined) query.set("year", String(next.year));
-    if (next.competition) query.set("competition", next.competition);
-    router.push(query.size ? `/awards?${query}` : "/awards", { scroll: false });
+    router.push(galleryHref(next), { scroll: false });
   }
   const title = competition?.title ?? (year ? `${year.year}年获奖比赛` : "荣誉展示");
   const action = "inline-flex min-h-11 items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600";

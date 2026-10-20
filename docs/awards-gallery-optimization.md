@@ -33,6 +33,12 @@
 
 ## 合并前手工验收清单
 
+### 官方任务对齐缺口（提交前核对）
+
+官方 [#59](https://github.com/gduf-community/ai-data-competitions-ui/issues/59)、[#61](https://github.com/gduf-community/ai-data-competitions-ui/issues/61)、[#62](https://github.com/gduf-community/ai-data-competitions-ui/issues/62)、[#63](https://github.com/gduf-community/ai-data-competitions-ui/issues/63) 明确要求 A/B 只读取聚合摘要，C 才读取选中赛事证书，并使用 `/awards/year/[year]`、`/awards/year/[year]/[competitionId]` 路径。本分支目前复用全量公开列表与查询参数，不满足这些条款；字段最小化并未解决全量加载问题。非法年份/比赛目前降级展示，也不同于官方要求的约定 404。
+
+因此这只是可讨论的界面实现，不应以完成上述 Issue 的名义提交或自动关闭任务。正式合并前需要维护者确认聚合/限定查询合同并调整路由，或明确接受替代方案；当前没有改写 API、伪造聚合接口或修改官方 Issue。是否先提交设计评审草稿，需与贡献者确认。
+
 - 年度总览 → 年度比赛 → 比赛证书，返回上级、刷新、分享 URL 与浏览器前进后退；未知年份返回总览，跨年或未知比赛保留在该年份。
 - 320、390、768、960、1440px：长比赛名完整换行，数量和量词同一行，触摸目标可点、菜单不溢出，图片失败有说明。
 - 数字首次达到 50% 可见时滚动约 3 秒，返回总览不重复播放；减少动态效果模式不滚动，切换该设置后显示最终数字。

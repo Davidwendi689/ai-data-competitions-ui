@@ -31,6 +31,7 @@ PowerShell 使用 `Copy-Item .env.example .env.local`。Web 默认 `http://local
 | 找实现、组件和 DTO | [代码组织与组件约定](./docs/代码组织与组件约定.md) |
 | 选择验证命令与联调范围 | [测试与验收](./docs/测试与验收.md) |
 | 查看自动检查、产物与发布边界 | [CI 与构建](./docs/CI与构建.md) |
+| 验收年度荣誉展示与导航优化 | [荣誉展示优化与验收说明](./docs/awards-gallery-optimization.md) |
 
 [文档总入口](./docs/README.md)还包含视觉、浏览器兼容、协作和历史材料。[设计与调研](./docs/设计与调研.md)收录完整 UI 案例研究、搜索/组件研究、首页与模板方案，以及从 API 迁回的社团文案和原始意见稿。
 
@@ -49,7 +50,7 @@ pnpm run ci
 
 - 比赛和问答使用 SSR 服务端搜索/分页，默认每页 20、最多 50；URL 恢复查询/筛选/页码。Regex 默认关闭，要求两端开关与 API 能力一致。
 - 社团使用统一后台、有效授权、真实封面、直接发布及已发布内容编辑；revision 冲突保留输入，旧审核写入口退役。真实存储、真机输入与存量切换仍按任务验收。
-- 当前荣誉为奖状长廊与单张详情；年度 A/B/C 属于后续计划。经验文章、名人堂走受邀流程。
+- 荣誉展示采用年度总览 → 年度比赛 → 比赛证书，保留单张详情；本分支仍待完整 CI 与浏览器验收，见[优化说明](./docs/awards-gallery-optimization.md)。经验文章、名人堂走受邀流程。
 - SQL 查询台已删除，固定分析保留；安全动作目前只有 IP 放行/回滚具备实际执行器。
 
 [Project #2](https://github.com/orgs/gduf-community/projects/2)统一管理 [Web Issue](https://github.com/gduf-community/ai-data-competitions-ui/issues) 与 [API Issue](https://github.com/gduf-community/competition-Q-A-website/issues)。跨仓保留一个主任务，两侧分别交付 PR 并绑定精确 companion SHA，见[协作指南](./docs/开源协作指南.md)。
